@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
@@ -26,7 +26,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signIn(email.trim(), password);
-      router.replace("/(tabs)/");
+      // Navigation is handled by onAuthStateChange in app/_layout.tsx
     } catch (err: any) {
       Alert.alert(
         "Sign in failed",

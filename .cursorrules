@@ -1,0 +1,466 @@
+# Spine — Project Knowledge Base
+> This file gives Cursor (and any AI assistant) full context about the Spine project.
+> Keep it updated as the project grows.
+
+---
+
+## What is Spine?
+
+Spine is a cross-platform book reading social app for iOS, Android, and Web. It lets users track books they've read, are reading, and want to read — with a social layer built around friends, book clubs, and shared reading experiences.
+
+**Core pillars:**
+1. **Library** — personal shelf with reading progress, ratings, and reviews
+2. **Discover** — AI-powered + friend-influenced book recommendations
+3. **Social** — friends, activity feed, see what your circle is reading
+4. **Clubs** — book clubs with real-time chat, finish-gated spoiler channels, and group reading progress
+5. **Gamification** — XP, levels, badges, reading streaks, yearly challenges
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Mobile + Web | **Expo (React Native)** via `expo-router` | One codebase for iOS, Android, web |
+| Backend / DB | **Supabase** (PostgreSQL) | Auth, real-time, RLS, storage |
+| State | **Zustand** | Auth state, local library cache |
+| Server state | **TanStack React Query** | Data fetching, caching, refetch |
+| Book data | **Open Library API** | Free, no key, millions of titles |
+| Language | **TypeScript** | Strict types throughout |
+| iOS builds | **EAS Build** (Expo cloud) | No Mac needed for iOS builds |
+| Testing (dev) | **Expo Go** | Scan QR, runs on real device instantly |
+
+---
+
+## Project Structure
+
+```
+spine/
+├── app/                          # Expo Router file-based routing
+│   ├── _layout.tsx               # Root layout — auth gate, QueryClientProvider
+│   ├── +not-found.tsx            # 404 screen
+│   ├── (auth)/                   # Auth stack (no bottom tabs)
+│   │   ├── _layout.tsx
+│   │   ├── login.tsx
+│   │   └── signup.tsx
+│   ├── (tabs)/                   # Main app with bottom tab navigator
+│   │   ├── _layout.tsx           # Tab bar config
+│   │   ├── index.tsx             # Library tab (home)
+│   │   ├── discover.tsx          # Discover / recommendations
+│   │   ├── friends.tsx           # Friends + activity feed
+│   │   ├── clubs.tsx             # Book clubs list
+│   │   └── profile.tsx           # User profile + stats
+│   ├── book/
+│   │   └── [id].tsx              # Book detail screen (dynamic route)
+│   └── club/
+│       └── [id].tsx              # Club detail + chat screen (dynamic route)
+│
+├── components/
+│   ├── ui/                       # Reusable primitive components
+│   │   ├── BookCard.tsx          # Book card (cover + title + author)
+│   │   ├── BookCover.tsx         # Colored cover with title overlay
+│   │   ├── StarRating.tsx        # Interactive/display star rating
+│   │   ├── Avatar.tsx            # User avatar (initials or image)
+│   │   └── Badge.tsx             # Achievement badge display
+│   └── library/
+│       ├── CurrentlyReading.tsx  # Currently reading card with progress bar
+│       └── ShelfRow.tsx          # Horizontal scrollable shelf section
+│
+├── lib/
+│   ├── supabase.ts               # Supabase client (platform-aware storage)
+│   └── api/
+│       ├── books.ts              # Open Library search + shelf management
+│       ├── ratings.ts            # Rate/review a book
+│       ├── friends.ts            # Friend requests, activity feed, social recs
+│       └── clubs.ts              # Club CRUD, messages, membership
+│
+├── store/
+│   └── stores.ts                 # Zustand: useAuthStore + useLibraryStore
+│
+├── types/
+│   └── index.ts                  # All TypeScript interfaces and enums
+│
+├── constants/
+│   └── colors.ts                 # Design tokens: COLORS, FONTS, RADIUS, SPACING, SHADOW
+│
+├── assets/
+│   └── images/
+│
+├── app.json                      # Expo config
+├── .env.local                    # Supabase keys (never committed)
+├── SPINE_BACKLOG.md              # Feature backlog and roadmap
+└── tsconfig.json
+```
+
+---
+
+## Environment Variables
+
+```
+# .env.local — required, never commit this file
+EXPO_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
+
+Access in code via `process.env.EXPO_PUBLIC_SUPABASE_URL`.
+All client-side env vars must be prefixed `EXPO_PUBLIC_`.
+
+---
+
+## Design System
+
+All design tokens live in `constants/colors.ts`. Always import from there — never hardcode hex values.
+
+### Colors
+```ts
+COLORS.background     // #F7F2E8  warm parchment — main bg
+COLORS.surface        // #EDE8DF  slightly darker — cards, inputs
+COLORS.surfaceRaised  // #E5DFD4  modals, elevated cards
+COLORS.primary        // #2D5A41  forest green — buttons, active states, CTAs
+COLORS.accent         // #C9892B  warm gold — stars, XP, streaks
+COLORS.text           // #1C1612  near-black warm — primary text
+COLORS.textSecondary  // #6B5D4F  medium warm brown
+COLORS.textMuted      // #9B8B7A  placeholders, captions
+COLORS.border         // #D4C5B2  dividers, input borders
+COLORS.borderLight    // #E0D8CE  subtle separators
+```
+
+### Spacing
+```ts
+SPACING.xs    // 4
+SPACING.sm    // 8
+SPACING.md    // 16
+SPACING.lg    // 24
+SPACING.xl    // 32
+SPACING.page  // 18 — standard horizontal screen padding
+```
+
+### Border Radius
+```ts
+RADIUS.sm    // 8
+RADIUS.md    // 12
+RADIUS.lg    // 16
+RADIUS.xl    // 20
+RADIUS.full  // 999 — pills, avatars
+```
+
+### Typography
+- Body/UI: system font
+- Headings / book titles / screen titles: `fontFamily: 'Georgia'` — gives the literary feel
+- Screen titles are typically `fontSize: 26, fontFamily: 'Georgia', fontWeight: '500'`
+
+---
+
+## Database Schema (Supabase / PostgreSQL)
+
+### Tables
+
+**`profiles`** — extends `auth.users`
+- `id` (UUID, FK to auth.users)
+- `username` (unique)
+- `display_name`
+- `avatar_url`
+- `bio`
+- `reading_goal` (int, books/year, default 12)
+- `xp`, `level`, `streak_days`
+- `last_read_at`
+- Auto-created on signup via DB trigger
+
+**`books`** — cached from Open Library / Google Books
+- `id` (UUID)
+- `open_library_id`, `google_books_id`, `isbn`
+- `title`, `author`, `description`
+- `cover_url`, `genres[]`, `page_count`, `published_year`
+- Books are upserted on first user interaction, not pre-populated
+
+**`user_books`** — a user's shelf entry for a book
+- `user_id`, `book_id`
+- `status`: `want | reading | read | did_not_finish`
+- `rating` (0.0–5.0, half-star increments), `review`
+- `progress_page`, `started_at`, `finished_at`
+- Unique constraint: `(user_id, book_id)`
+
+**`friendships`**
+- `requester`, `addressee` (both UUID → profiles)
+- `status`: `pending | accepted | blocked`
+- View `friends` provides bidirectional pairs for easy querying
+
+**`clubs`**
+- `name`, `description`, `cover_color`
+- `is_private`, `invite_code`
+- `current_book_id`, `next_meeting`
+- `created_by`
+
+**`club_members`** — junction: `(club_id, user_id, role)`
+- `role`: `owner | admin | member`
+
+**`club_messages`** — real-time chat
+- `club_id`, `user_id`, `content`
+- `channel`: `reading | finished` (for spoiler gate)
+- `book_id`, `chapter` (optional, for chapter-tagged messages)
+- Realtime enabled via `supabase_realtime` publication
+
+**`activities`** — denormalized feed events
+- `type`: `started_reading | finished_book | rated_book | added_to_shelf | joined_club | earned_badge`
+- `book_id`, `club_id`, `metadata` (JSONB)
+- Realtime enabled
+
+**`badges`** + **`user_badges`**
+- Badges seeded: `first_book`, `speed_reader`, `genre_explorer`, `social_butterfly`, `centurion`, `streak_30`, `club_founder`, `critic`
+
+**`club_book_finishers`** _(planned, not yet migrated)_
+- Gates access to `finished` channel in clubs
+- `quiz_passed` boolean — verified via AI-generated quiz
+
+**`club_nominations`** + **`club_votes`** _(planned)_
+- For the book selection / voting feature in clubs
+
+### Key Views
+- **`friends`** — bidirectional accepted friendship pairs
+- **`friend_activity`** — activities joined with profile + book data
+- **`friend_popular_books`** — books your friends rated, aggregated
+
+### Row Level Security
+- All tables have RLS enabled
+- Users can only write their own data
+- Friends can see each other's `reading` and `read` shelf entries (not `want`)
+- Club messages respect the `channel` — `finished` channel only accessible to users in `club_book_finishers`
+
+---
+
+## Auth Flow
+
+1. App boots → `app/_layout.tsx` calls `supabase.auth.getSession()`
+2. If session exists → `fetchProfile(user.id)` → `router.replace('/(tabs)/')`
+3. If no session → `router.replace('/(auth)/login')`
+4. `supabase.auth.onAuthStateChange` handles login/logout reactively
+5. Profile is stored in `useAuthStore` (Zustand) and available globally
+
+### Supabase client (`lib/supabase.ts`)
+- Uses `AsyncStorage` on iOS/Android
+- Uses `localStorage` (with `window` guard) on web
+- `app.json` web output must be `"single"` (not `"static"`) to avoid SSR crashes
+
+---
+
+## State Management
+
+### `useAuthStore` (Zustand)
+```ts
+profile: Profile | null
+isLoading: boolean
+signIn(email, password)
+signUp(email, password, username, displayName)
+signOut()
+fetchProfile(userId)
+setProfile(profile)
+```
+
+### `useLibraryStore` (Zustand)
+```ts
+books: UserBook[]         // local cache of user's shelf
+isLoaded: boolean
+setBooks(books)           // called after initial fetch
+addBook(book)             // optimistic add
+updateBook(id, updates)   // optimistic update
+getByStatus(status)       // filter shelf by status
+getByBookId(bookId)       // find shelf entry by book
+```
+
+### React Query
+Used for all server data fetching. Key patterns:
+```ts
+// Fetch shelf
+useQuery({ queryKey: ['shelf', userId], queryFn: () => getMyShelf(userId) })
+
+// Fetch friend activity
+useQuery({ queryKey: ['friendActivity'], queryFn: getFriendActivity })
+
+// Invalidate after mutation
+queryClient.invalidateQueries({ queryKey: ['shelf', userId] })
+```
+
+---
+
+## API Layer (`lib/api/`)
+
+### `books.ts`
+- `searchBooks(query)` — searches Open Library, returns `Book[]`
+- `upsertBook(book)` — caches book in Supabase on first interaction
+- `getMyShelf(userId)` — returns `UserBook[]` with joined `book` data
+- `addToShelf(userId, book, status)` — upserts book + creates shelf entry + logs activity
+- `updateShelfEntry(userBookId, updates)` — update status/progress/rating
+- `rateBook(userId, bookId, rating, review)` — rate + log activity
+
+### `friends.ts`
+- `sendFriendRequest(addresseeId)`
+- `respondToRequest(friendshipId, accept)`
+- `getFriends(userId)` — returns `Profile[]`
+- `getPendingRequests()` — incoming pending requests
+- `searchUsers(query)` — search by username or display name
+- `getFriendActivity(limit)` — feed from `friend_activity` view
+- `getFriendRecommendations(userId)` — from `friend_popular_books` view, filtered to exclude user's shelf
+
+### Open Library API
+- Base URL: `https://openlibrary.org/search.json`
+- Cover images: `https://covers.openlibrary.org/b/id/{cover_id}-M.jpg`
+- No API key required
+- Books are fetched on search and cached in the `books` table on first save
+
+---
+
+## Key Features & Status
+
+| Feature | Status | Notes |
+|---|---|---|
+| Auth (login/signup) | ✅ Built | Email/password via Supabase |
+| Library screen | ✅ Built | Shows shelf by status, progress bars |
+| Book search | 🔲 Next | Open Library API, search screen needed |
+| Add to shelf | 🔲 Next | Needs search screen first |
+| Rate/review | 🔲 Planned | Sheet modal on book detail screen |
+| Discover/Recs | 🔲 Planned | Phase 3 — needs shelf data first |
+| Friends | 🔲 Planned | Phase 2 |
+| Activity feed | 🔲 Planned | Phase 2 |
+| Book clubs | 🔲 Planned | Phase 3 |
+| Real-time club chat | 🔲 Planned | Supabase Realtime, Phase 3 |
+| Finish-gated spoiler chat | 🔲 Planned | Phase 3 — key differentiator |
+| AI completion quiz | 🔲 Planned | Anthropic API, validates book completion |
+| Club book voting | 🔲 Planned | Nominations + votes, Phase 4 |
+| Genre wheel spin | 🔲 Planned | Reanimated spin component, Phase 4 |
+| Badges / XP | 🔲 Planned | Phase 4 |
+| Reading streaks | 🔲 Planned | Phase 4 |
+| Kindle/Kobo sync | 🔲 Future | No Kindle API; Kobo possible in v2 |
+
+---
+
+## Routing Conventions
+
+Expo Router uses file-based routing (like Next.js).
+
+| Path | Screen |
+|---|---|
+| `/` | Redirects based on auth state |
+| `/(auth)/login` | Login |
+| `/(auth)/signup` | Signup |
+| `/(tabs)/` | Library (home tab) |
+| `/(tabs)/discover` | Discover |
+| `/(tabs)/friends` | Friends |
+| `/(tabs)/clubs` | Clubs list |
+| `/(tabs)/profile` | Profile |
+| `/book/[id]` | Book detail (book UUID) |
+| `/club/[id]` | Club detail + chat (club UUID) |
+| `/search` | Book search _(not yet built)_ |
+
+Navigation:
+```ts
+router.push('/book/some-uuid')
+router.replace('/(tabs)/')
+router.back()
+<Link href="/(auth)/signup" />
+```
+
+---
+
+## Component Conventions
+
+- All screens use `<SafeAreaView edges={['top']}>` from `react-native-safe-area-context`
+- Styles always defined with `StyleSheet.create()` at the bottom of the file
+- Design tokens from `constants/colors.ts` — never hardcode colors
+- Screen titles use `fontFamily: 'Georgia'` for the literary aesthetic
+- Loading states: `<ActivityIndicator color={COLORS.primary} />`
+- Empty states: emoji + message + CTA button pattern
+
+---
+
+## Running the Project
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server
+npx expo start
+
+# Then:
+# Press w → open in browser
+# Press a → open Android emulator
+# Scan QR → open in Expo Go on iPhone (no Apple account needed)
+```
+
+Required `.env.local` in project root:
+```
+EXPO_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+```
+
+---
+
+## EAS Build (iOS without a Mac)
+
+```bash
+# First time setup
+npm install -g eas-cli
+eas login
+eas build:configure
+
+# Trigger iOS build (Expo builds in the cloud)
+eas build --platform ios --profile development
+
+# Over-the-air update (skip App Store review for JS changes)
+eas update --branch production --message "Fix bug"
+```
+
+EAS uses Expo's Mac servers to compile the iOS binary. You need an Apple Developer account ($99/yr) only when distributing via TestFlight or the App Store. For daily development, Expo Go is sufficient.
+
+---
+
+## Planned Schema Additions
+
+These are documented in `SPINE_BACKLOG.md` and not yet applied to the database:
+
+```sql
+-- Finish-gated spoiler chat
+CREATE TABLE club_book_finishers (
+  club_id     UUID REFERENCES clubs(id),
+  book_id     UUID REFERENCES books(id),
+  user_id     UUID REFERENCES profiles(id),
+  quiz_passed BOOLEAN DEFAULT false,
+  finished_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (club_id, book_id, user_id)
+);
+
+ALTER TABLE club_messages ADD COLUMN channel TEXT DEFAULT 'reading'
+  CHECK (channel IN ('reading', 'finished'));
+
+-- Club book voting
+CREATE TABLE club_nominations (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      UUID REFERENCES clubs(id) ON DELETE CASCADE,
+  book_id      UUID REFERENCES books(id),
+  nominated_by UUID REFERENCES profiles(id),
+  round        INT DEFAULT 1,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE club_votes (
+  nomination_id UUID REFERENCES club_nominations(id) ON DELETE CASCADE,
+  user_id       UUID REFERENCES profiles(id),
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (nomination_id, user_id)
+);
+```
+
+---
+
+## Key Decisions & Gotchas
+
+- **`app.json` web output must be `"single"` not `"static"`** — static mode enables SSR which crashes AsyncStorage (`window is not defined`)
+- **Supabase client uses platform-aware storage** — `localStorage` on web, `AsyncStorage` on native, both with null guards
+- **Books are not pre-populated** — they're fetched from Open Library on search and cached in the `books` table on first user interaction (upserted by `open_library_id`)
+- **Activity feed is denormalized** — the `activities` table stores events as they happen; the `friend_activity` view joins them with profile/book data for display
+- **RLS is strict** — always test Supabase queries as an authenticated user; anon queries will be blocked on most tables
+- **`(auth)` and `(tabs)` folder names with parens** — these are Expo Router route groups. The parens mean the folder name doesn't appear in the URL. Windows terminals may need escaping: `mkdir app\(auth\)`
+
+---
+
+*Last updated: project kickoff. Update this file whenever new screens, tables, or major features are added.*

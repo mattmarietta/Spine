@@ -1,5 +1,5 @@
 // app/(auth)/signup.tsx
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
 import { useState } from "react";
 import {
     ActivityIndicator,
@@ -44,7 +44,7 @@ export default function SignupScreen() {
         username.trim().toLowerCase(),
         displayName.trim(),
       );
-      router.replace("/(tabs)/");
+      // Navigation is handled by onAuthStateChange in app/_layout.tsx
     } catch (err: any) {
       Alert.alert("Sign up failed", err.message ?? "Something went wrong.");
     } finally {

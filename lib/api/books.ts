@@ -55,7 +55,7 @@ export async function upsertBook(
 export async function getMyShelf(userId: string): Promise<UserBook[]> {
   const { data, error } = await supabase
     .from("user_books")
-    .select()
+    .select("*, book:books(*)")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -88,7 +88,7 @@ export async function addToShelf(
   }
 
   await supabase.from("activities").insert({
-    userId: userId,
+    user_id: userId,
     type: status === "reading" ? "started_reading" : "added_to_shelf",
     book_id: savedBook.id,
   });

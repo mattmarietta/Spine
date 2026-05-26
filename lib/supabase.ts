@@ -4,8 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 import { Platform } from "react-native";
 import "react-native-url-polyfill/auto";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    "Missing Supabase env vars. Add EXPO_PUBLIC_SUPABASE_URL and " +
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart with " +
+      "`npx expo start -c` (the -c clears Metro's env cache).",
+  );
+}
 
 // Web can't use AsyncStorage during SSR — use localStorage with a safety guard
 const webStorage = {
