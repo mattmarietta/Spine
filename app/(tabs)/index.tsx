@@ -94,6 +94,25 @@ export default function LibraryScreen() {
   const read = shelf.filter((b) => b.status === "read");
   const want = shelf.filter((b) => b.status === "want");
 
+  function openBook(b: UserBook) {
+    if (!b.book?.open_library_id) return;
+    router.push({
+      pathname: `/book/${b.book.open_library_id}`,
+      params: {
+        title: b.book.title,
+        author: b.book.author,
+        cover_url: b.book.cover_url ?? "",
+        genres: JSON.stringify(b.book.genres ?? []),
+        page_count: String(b.book.page_count ?? ""),
+        published_year: String(b.book.published_year ?? ""),
+        description: b.book.description ?? "",
+        isbn: b.book.isbn ?? "",
+        userBookId: b.id,
+        status: b.status,
+      },
+    });
+  }
+
   const greeting = () => {
     const h = new Date().getHours();
     if (h < 12) return "Good morning";
@@ -174,7 +193,7 @@ export default function LibraryScreen() {
               <TouchableOpacity
                 key={b.id}
                 style={styles.currentCard}
-                onPress={() => router.push(`/book/${b.book_id}`)}
+                onPress={() => openBook(b)}
               >
                 <BookCover book={b} width={60} height={88} />
                 <View style={styles.currentInfo}>
@@ -212,7 +231,7 @@ export default function LibraryScreen() {
                 <TouchableOpacity
                   key={b.id}
                   style={styles.gridCard}
-                  onPress={() => router.push(`/book/${b.book_id}`)}
+                  onPress={() => openBook(b)}
                 >
                   <BookCover book={b} width={44} height={62} />
                   <View style={styles.gridInfo}>
@@ -243,7 +262,7 @@ export default function LibraryScreen() {
                 <TouchableOpacity
                   key={b.id}
                   style={styles.wantItem}
-                  onPress={() => router.push(`/book/${b.book_id}`)}
+                  onPress={() => openBook(b)}
                 >
                   <BookCover book={b} width={72} height={104} />
                   <Text style={styles.wantTitle} numberOfLines={2}>
