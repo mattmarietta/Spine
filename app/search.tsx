@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -26,8 +27,21 @@ const COVER_COLORS = [
   "#7A4A2E",
 ];
 
-function MiniCover({ title, width = 52, height = 76 }: { title: string; width?: number; height?: number }) {
+function MiniCover({ title, coverUrl, width = 52, height = 76 }: { title: string; coverUrl?: string | null; width?: number; height?: number }) {
+  const [imgError, setImgError] = useState(false);
   const color = COVER_COLORS[title.length % COVER_COLORS.length];
+
+  if (coverUrl && !imgError) {
+    return (
+      <Image
+        source={{ uri: coverUrl }}
+        style={[styles.cover, { width, height }]}
+        resizeMode="cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
   return (
     <View style={[styles.cover, { width, height, backgroundColor: color }]}>
       <Text style={styles.coverTitle} numberOfLines={3}>
@@ -156,7 +170,7 @@ export default function SearchScreen() {
             onPress={() => handleBookPress(item)}
             activeOpacity={0.7}
           >
-            <MiniCover title={item.title} />
+            <MiniCover title={item.title} coverUrl={item.cover_url} />
             <View style={styles.resultInfo}>
               <Text style={styles.resultTitle} numberOfLines={2}>
                 {item.title}
