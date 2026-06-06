@@ -4,7 +4,16 @@
 
 export type ShelfStatus = "want" | "reading" | "read" | "did_not_finish";
 
-export type FriendshipStatus = "friends" | "pending" | "requested" | "none";
+// Mirrors the DB enum: friendship_status
+export type FriendshipStatus = "pending" | "accepted" | "blocked";
+
+// UI-computed relation — includes derived states that don't exist in the DB
+export type FriendRelation =
+  | "none"
+  | "pending"
+  | "requested"
+  | "accepted"
+  | "blocked";
 
 export type ActivityType =
   | "started_reading"
@@ -52,6 +61,7 @@ export interface UserBook {
   id: string;
   user_id: string;
   book_id: string;
+  //cover_url: string | null;
   status: ShelfStatus;
   rating: number | null;
   review: string | null;
@@ -68,7 +78,7 @@ export interface Friendship {
   id: string;
   requester: string;
   addressee: string;
-  status: FriendshipStatus;
+  status: FriendshipStatus; // DB values only: pending | accepted | blocked
   created_at: string;
   // Joined
   requester_profile?: Profile;

@@ -1,6 +1,8 @@
 import type { Activity, Friendship, Profile } from "../../types";
 import { supabase } from "../supabase";
 
+// ─── Friendship Management ─────────────────────────────────────
+
 export async function sendFriendRequest(addresseeId: string): Promise<void> {
   const {
     data: { user },
@@ -18,12 +20,38 @@ export async function respondToRequest(
   friendshipId: string,
   accept: boolean,
 ): Promise<void> {
-  const { error } = await supabase
+  if (accept) {
+    const { error } = await supabase
+      .from("friendships")
+      .update({ status: "accepted" })
+      .eq("id", friendshipId);
+    if (error) throw error;
+  } else {
+    // Declining: delete the row — "rejected" is not a valid DB status.
+    // The requester can send a new request in the future if they want.
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", friendshipId);
+    if (error) throw error;
+  }
+}
+
+// Returns all friendship rows involving the current user (any status).
+// Used client-side to compute FriendRelation for search results.
+export async function getMyFriendships(): Promise<Friendship[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
     .from("friendships")
-    .update({ status: accept ? "accepted" : "rejected" })
-    .eq("id", friendshipId);
+    .select("*")
+    .or(`requester.eq.${user.id},addressee.eq.${user.id}`);
 
   if (error) throw error;
+  return data ?? [];
 }
 
 export async function getFriends(userId: string): Promise<Profile[]> {

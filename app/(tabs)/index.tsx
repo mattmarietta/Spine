@@ -3,13 +3,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import {
-    ActivityIndicator,
-    RefreshControl,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, RADIUS, SPACING } from "../../constants/colors";
@@ -41,19 +42,26 @@ function BookCover({
   const color = colors[(book.book?.title.length ?? 0) % colors.length];
 
   return (
-    <View style={[styles.cover, { width, height, backgroundColor: color }]}>
-      <Text
-        style={[styles.coverTitle, { fontSize: width < 60 ? 7 : 9 }]}
-        numberOfLines={3}
-      >
-        {book.book?.title}
-      </Text>
-      <Text
-        style={[styles.coverAuthor, { fontSize: width < 60 ? 6 : 8 }]}
-        numberOfLines={1}
-      >
-        {book.book?.author.split(" ").slice(-1)[0]}
-      </Text>
+    <View
+      style={{
+        borderRadius: 3,
+        justifyContent: "flex-end",
+        padding: 6,
+        overflow: "hidden",
+      }}
+    >
+      <Image
+        source={{ uri: book.book?.cover_url ?? "" }}
+        style={{
+          width,
+          height,
+          borderRadius: 3,
+          justifyContent: "flex-end",
+          padding: 6,
+          overflow: "hidden",
+        }}
+        resizeMode="cover"
+      />
     </View>
   );
 }
@@ -181,7 +189,12 @@ export default function LibraryScreen() {
         <Text style={screen.sectionTitle}>Currently Reading</Text>
         {reading.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="book-outline" size={32} color={COLORS.textMuted} style={styles.emptyIcon} />
+            <Ionicons
+              name="book-outline"
+              size={32}
+              color={COLORS.textMuted}
+              style={styles.emptyIcon}
+            />
             <Text style={styles.emptyText}>No books in progress</Text>
             <TouchableOpacity onPress={() => router.push("/search")}>
               <Text style={styles.emptyAction}>Find something to read</Text>
@@ -277,7 +290,12 @@ export default function LibraryScreen() {
         {/* Empty state for brand new users */}
         {shelf.length === 0 && (
           <View style={styles.bigEmpty}>
-            <Ionicons name="library-outline" size={56} color={COLORS.textMuted} style={styles.bigEmptyIcon} />
+            <Ionicons
+              name="library-outline"
+              size={56}
+              color={COLORS.textMuted}
+              style={styles.bigEmptyIcon}
+            />
             <Text style={styles.bigEmptyTitle}>Your shelf is empty</Text>
             <Text style={styles.bigEmptySubtitle}>
               Search for a book to get started
@@ -286,9 +304,7 @@ export default function LibraryScreen() {
               style={styles.bigEmptyButton}
               onPress={() => router.push("/search")}
             >
-              <Text style={styles.bigEmptyButtonText}>
-                Add your first book
-              </Text>
+              <Text style={styles.bigEmptyButtonText}>Add your first book</Text>
             </TouchableOpacity>
           </View>
         )}
