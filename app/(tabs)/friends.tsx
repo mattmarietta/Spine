@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Avatar } from "../../components/ui/Avatar";
 import { COLORS, RADIUS, SHADOW, SPACING } from "../../constants/colors";
 import { screen } from "../../constants/constants";
 import {
@@ -24,7 +25,6 @@ import {
 } from "../../lib/api/friends";
 import { useAuthStore } from "../../store/stores";
 import type { FriendRelation, Friendship, Profile } from "../../types";
-import { Avatar } from "../../components/ui/Avatar";
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -169,7 +169,9 @@ export default function FriendsScreen() {
     mutationFn: sendFriendRequest,
     onSuccess: () => {
       // Refresh the friendships cache so future re-opens of the modal are correct.
-      queryClient.invalidateQueries({ queryKey: ["myFriendships", profile?.id] });
+      queryClient.invalidateQueries({
+        queryKey: ["myFriendships", profile?.id],
+      });
     },
     onError: (_err, addresseeId) => {
       // Revert the optimistic update so the button goes back to "Add".
@@ -195,7 +197,11 @@ export default function FriendsScreen() {
     (userId: string): FriendRelation => {
       // Optimistic override — check local set first before hitting the cache.
       if (justRequested.has(userId)) return "requested";
-      return computeRelation(userId, profile!.id, myFriendships as Friendship[]);
+      return computeRelation(
+        userId,
+        profile!.id,
+        myFriendships as Friendship[],
+      );
     },
     [justRequested, myFriendships, profile],
   );
@@ -212,7 +218,11 @@ export default function FriendsScreen() {
           onPress={() => setModalVisible(true)}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="person-add-outline" size={20} color={COLORS.primary} />
+          <Ionicons
+            name="person-add-outline"
+            size={20}
+            color={COLORS.primary}
+          />
         </TouchableOpacity>
       </View>
 
@@ -224,7 +234,7 @@ export default function FriendsScreen() {
         />
       ) : friends.length === 0 ? (
         <View style={s.empty}>
-          <Text style={s.emptyEmoji}>📖</Text>
+          <Text style={s.emptyEmoji}></Text>
           <Text style={s.emptyTitle}>No friends yet</Text>
           <Text style={s.emptyBody}>
             Find readers and add them to see what they're reading.
