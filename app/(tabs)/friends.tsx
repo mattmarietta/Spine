@@ -434,7 +434,7 @@ const s = StyleSheet.create({
   // Modal backdrop
   backdrop: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: "center",
     backgroundColor: COLORS.overlay,
   },
 
@@ -445,7 +445,7 @@ const s = StyleSheet.create({
     borderTopRightRadius: RADIUS.xl,
     paddingHorizontal: SPACING.page,
     paddingBottom: SPACING.xl,
-    maxHeight: "85%",
+    maxHeight: "100%",
     ...SHADOW.md,
   },
   handle: {

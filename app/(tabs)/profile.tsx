@@ -1,7 +1,8 @@
+import { Avatar } from "@/components/ui/Avatar";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { screen } from "../../constants/constants";
 import { COLORS, RADIUS } from "../../constants/colors";
+import { screen } from "../../constants/constants";
 import { useAuthStore } from "../../store/stores";
 
 export default function ProfileScreen() {
@@ -9,6 +10,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={screen.container} edges={["top"]}>
       <Text style={screen.title}>Profile</Text>
+      <Avatar size={100} displayName={profile?.display_name || "Unknown User"} avatarUrl={profile?.avatar_url} />
       <Text style={s.name}>{profile?.display_name}</Text>
       <Text style={s.username}>@{profile?.username}</Text>
       <TouchableOpacity style={s.signOut} onPress={signOut}>
